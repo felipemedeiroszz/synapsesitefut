@@ -95,6 +95,51 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     
     console.log('Página carregada com sucesso!');
+
+    // Prompt visível para habilitar movimento no iOS (iOS 13+ exige permissão)
+    (function setupIOSMotionPrompt(){
+        const isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent);
+        const DOE = window.DeviceOrientationEvent;
+        if (!isIOS || !DOE || typeof DOE.requestPermission !== 'function' || prefersReducedMotion) return;
+
+        const btn = document.createElement('button');
+        btn.id = 'motion-permission-btn';
+        btn.type = 'button';
+        btn.textContent = 'Ativar efeitos de movimento';
+        btn.style.position = 'fixed';
+        btn.style.left = '50%';
+        btn.style.bottom = '16px';
+        btn.style.transform = 'translateX(-50%)';
+        btn.style.zIndex = '9999';
+        btn.style.padding = '10px 14px';
+        btn.style.borderRadius = '999px';
+        btn.style.border = 'none';
+        btn.style.background = 'linear-gradient(135deg, #0066cc, #00cc99)';
+        btn.style.color = '#fff';
+        btn.style.fontSize = '14px';
+        btn.style.boxShadow = '0 8px 20px rgba(0,0,0,0.2)';
+        btn.style.cursor = 'pointer';
+
+        const removeBtn = () => {
+            if (btn && btn.parentNode) btn.parentNode.removeChild(btn);
+            window.removeEventListener('deviceorientation', onAnyOrientation, true);
+        };
+        const onAnyOrientation = () => removeBtn();
+        window.addEventListener('deviceorientation', onAnyOrientation, { once: true, passive: true });
+
+        btn.addEventListener('click', () => {
+            // Solicitar permissão explicitamente
+            DOE.requestPermission().then(() => {
+                // Após a permissão, nossos listeners por seção (registrados no touchstart) serão acionados
+                // pelo próprio toque no botão. O botão será removido quando chegar algum evento de orientação.
+            }).catch(() => {
+                // Se negar, escondemos depois de um tempo para não ficar preso na tela
+                setTimeout(removeBtn, 2000);
+            });
+        });
+
+        document.body.appendChild(btn);
+    })();
     
     // Hamburger menu functionality
     const hamburgerMenu = document.querySelector('.hamburger-menu');
