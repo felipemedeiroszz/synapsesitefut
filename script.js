@@ -47,6 +47,51 @@ document.addEventListener('DOMContentLoaded', function() {
         homeContainer.addEventListener('mouseleave', onLeaveLogo);
         homeContainer.addEventListener('focus', resetLogo, true);
         homeContainer.addEventListener('blur', resetLogo, true);
+
+        // Suporte a movimento do dispositivo (mobile) para o efeito da logo
+        const enableDeviceOrientationForLogo = () => {
+            if (prefersReducedMotion) return;
+            if (!('DeviceOrientationEvent' in window)) return;
+
+            const clamp = (v, min, max) => Math.max(min, Math.min(max, v));
+            const handleOrientation = (e) => {
+                const beta = e.beta || 0;   // inclinação frente-trás (-180..180)
+                const gamma = e.gamma || 0; // inclinação esquerda-direita (-90..90)
+                const dx = clamp(gamma / 45, -1, 1); // normaliza para -1..1
+                const dy = clamp(beta / 45, -1, 1);
+
+                if (rafIdLogo) cancelAnimationFrame(rafIdLogo);
+                rafIdLogo = requestAnimationFrame(() => {
+                    homeContainer.style.transform = `perspective(1000px) rotateX(${-dy * maxTilt}deg) rotateY(${dx * maxTilt}deg)`;
+                    homeLogo.style.filter = 'drop-shadow(0 12px 28px rgba(0,0,0,0.18)) drop-shadow(0 0 12px rgba(0,102,204,0.35))';
+                });
+            };
+
+            window.addEventListener('deviceorientation', handleOrientation, { passive: true });
+        };
+
+        // iOS 13+ requer permissão do usuário
+        const tryRequestiOSPermission = () => {
+            const DOE = window.DeviceOrientationEvent;
+            if (DOE && typeof DOE.requestPermission === 'function') {
+                const onFirstTouch = () => {
+                    DOE.requestPermission().then((state) => {
+                        if (state === 'granted') enableDeviceOrientationForLogo();
+                    }).catch(() => {}).finally(() => {
+                        window.removeEventListener('touchstart', onFirstTouch);
+                    });
+                };
+                window.addEventListener('touchstart', onFirstTouch, { once: true });
+            } else {
+                // Android/desktop mobile sim: habilita direto
+                enableDeviceOrientationForLogo();
+            }
+        };
+
+        // Ativar apenas em dispositivos com toque
+        if ('ontouchstart' in window) {
+            tryRequestiOSPermission();
+        }
     }
     
     console.log('Página carregada com sucesso!');
@@ -136,6 +181,42 @@ document.addEventListener('DOMContentLoaded', function() {
             card.addEventListener('mouseleave', onLeave);
             card.addEventListener('focus', reset, true);
             card.addEventListener('blur', reset, true);
+
+            // Suporte a DeviceOrientation para cartões da equipe (mobile)
+            const enableDeviceOrientationForTeam = () => {
+                if (!('DeviceOrientationEvent' in window)) return;
+                const clamp = (v, min, max) => Math.max(min, Math.min(max, v));
+                const maxTilt = 9;
+                const parallax = 9;
+                const handleOrientation = (e) => {
+                    const beta = e.beta || 0;
+                    const gamma = e.gamma || 0;
+                    const dx = clamp(gamma / 45, -1, 1);
+                    const dy = clamp(beta / 45, -1, 1);
+                    if (rafId) cancelAnimationFrame(rafId);
+                    rafId = requestAnimationFrame(() => {
+                        card.style.transform = `perspective(1000px) rotateX(${-dy * maxTilt}deg) rotateY(${dx * maxTilt}deg)`;
+                        if (img) img.style.transform = `scale(1.05) translate(${dx * parallax}px, ${dy * parallax}px)`;
+                    });
+                };
+                window.addEventListener('deviceorientation', handleOrientation, { passive: true });
+            };
+
+            if ('ontouchstart' in window && !prefersReducedMotion) {
+                const DOE = window.DeviceOrientationEvent;
+                if (DOE && typeof DOE.requestPermission === 'function') {
+                    const onFirstTouch = () => {
+                        DOE.requestPermission().then((state) => {
+                            if (state === 'granted') enableDeviceOrientationForTeam();
+                        }).catch(() => {}).finally(() => {
+                            window.removeEventListener('touchstart', onFirstTouch);
+                        });
+                    };
+                    window.addEventListener('touchstart', onFirstTouch, { once: true });
+                } else {
+                    enableDeviceOrientationForTeam();
+                }
+            }
         });
     }
     
@@ -408,6 +489,42 @@ document.addEventListener('DOMContentLoaded', function() {
             // Acessibilidade: focos via teclado resetam o tilt
             card.addEventListener('focus', reset, true);
             card.addEventListener('blur', reset, true);
+
+            // Suporte a DeviceOrientation para cartões de projetos (mobile)
+            const enableDeviceOrientationForProject = () => {
+                if (!('DeviceOrientationEvent' in window)) return;
+                const clamp = (v, min, max) => Math.max(min, Math.min(max, v));
+                const maxTilt = 9;
+                const parallax = 9;
+                const handleOrientation = (e) => {
+                    const beta = e.beta || 0;
+                    const gamma = e.gamma || 0;
+                    const dx = clamp(gamma / 45, -1, 1);
+                    const dy = clamp(beta / 45, -1, 1);
+                    if (rafId) cancelAnimationFrame(rafId);
+                    rafId = requestAnimationFrame(() => {
+                        card.style.transform = `perspective(1000px) rotateX(${-dy * maxTilt}deg) rotateY(${dx * maxTilt}deg)`;
+                        if (img) img.style.transform = `scale(1.06) translate(${dx * parallax}px, ${dy * parallax}px)`;
+                    });
+                };
+                window.addEventListener('deviceorientation', handleOrientation, { passive: true });
+            };
+
+            if ('ontouchstart' in window && !reduceMotion) {
+                const DOE = window.DeviceOrientationEvent;
+                if (DOE && typeof DOE.requestPermission === 'function') {
+                    const onFirstTouch = () => {
+                        DOE.requestPermission().then((state) => {
+                            if (state === 'granted') enableDeviceOrientationForProject();
+                        }).catch(() => {}).finally(() => {
+                            window.removeEventListener('touchstart', onFirstTouch);
+                        });
+                    };
+                    window.addEventListener('touchstart', onFirstTouch, { once: true });
+                } else {
+                    enableDeviceOrientationForProject();
+                }
+            }
         });
     }
     
